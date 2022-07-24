@@ -1,0 +1,80 @@
+#include <SPI.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+RF24 radio(9, 10); // CE, CSN         
+const byte address1[6] = "00001";     //Byte of array representing the address. This is the address where we will send the data. This should be same on the receiving side.
+struct helmet{
+  int t,h,mq_value;
+};
+int pack[3];
+helmet h1;
+
+void setup() {
+  // put your setup code here, to run once:
+//in reci nrf
+
+
+
+pinMode(6, OUTPUT);//nrf gas o/p-6 -red led
+pinMode(7, OUTPUT);//nrf temp o/p-7 -green led
+pinMode(8, OUTPUT);//nrf hum o/p-8 -green led
+Serial.begin(9600);
+radio.begin();
+radio.openReadingPipe(0, address1);   //Setting the address at which we will receive the data
+radio.setPALevel(RF24_PA_MIN);       //You can set this as minimum or maximum depending on the distance between the transmitter and receiver.
+radio.startListening();    
+
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  if (radio.available())              //Looking for the data.
+  {  
+//  radio.read(&h1.h, sizeof(h1.h));
+//  radio.read(&h1.t, sizeof(h1.t));
+//  radio.read(&h1.mq_value, sizeof(h1.mq_value));    //Reading the data
+  radio.read(pack, sizeof(pack));
+//  Serial.println(h1.mq_value);
+//  Serial.println(h1.t);
+//  Serial.println(h1.h);
+//  Serial.println("hii");
+  Serial.print("gas level = ");
+  Serial.println(pack[0]);
+  Serial.print("temperature = ");
+  Serial.println(pack[1]);
+  Serial.print("humidity = ");
+  Serial.println(pack[2]);
+  Serial.println();
+  if(pack[0]>375)
+  {
+   digitalWrite(6,HIGH);
+   delay(500);
+   Serial.println("High gas exposure warning");
+   
+  }
+  else{
+    digitalWrite(6,LOW);
+  }
+  if(pack[1]>25)
+  {
+   digitalWrite(7,HIGH);
+   Serial.println("High temperature warning");
+   delay(500);
+   
+  }
+  else{
+    digitalWrite(7,LOW);
+  }
+  if(pack[2]>70)
+  {
+   digitalWrite(8,HIGH);
+   Serial.println("High humditiy warning");
+   delay(500);
+   
+  }
+  else{
+    digitalWrite(8,LOW);
+  }
+  
+  }
+}
