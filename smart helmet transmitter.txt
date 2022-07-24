@@ -1,0 +1,121 @@
+#include <SPI.h>
+#include <dht.h>
+#include <nRF24L01.h>
+#define dht_apin A1// Analog Pin sensor is connected to
+ 
+#include <RF24.h>
+dht DHT;
+RF24 radio(9, 10); // CE, CSN         
+const byte address1[6] = "00001";     //Byte of array representing the address. This is the address where we will send the data. This should be same on the receiving side.
+const int ir_pin = 3;
+int ir_state = 0;
+const int mq_pin=A0;
+const int dth_pin=A1;
+struct helmet{
+  int id;
+  float t,h,mq_value;
+};
+int pack[3];
+
+helmet h1;
+void setup() {
+
+  // put your setup code here, to run once:
+pinMode(ir_pin, INPUT);//ir sensor input-3
+pinMode(5,OUTPUT);//ir sensor o/p-5-red led
+pinMode(mq_pin, INPUT);//gas i/p-A0
+pinMode(6,OUTPUT);//gas o/p-6-yellow led
+pinMode(dth_pin, INPUT);//dth i/p-4
+pinMode(7,OUTPUT);//dth o/p-7-green led(temp)
+pinMode(8,OUTPUT);//dth o/p-8-blue led (hum)
+Serial.begin(9600);
+delay(500);//Delay to let system boot
+Serial.println("DHT11 Humidity & temperature Sensor\n\n");
+delay(1000);//Wait before accessing Sensor
+//nrf ce-9
+//nrf cns-10
+//nrf mosi-11
+//nrf mosi-12
+//nrf sck-13
+radio.begin();                  //Starting the Wireless communication
+radio.openWritingPipe(address1); //Setting the address where we will send the data
+radio.setPALevel(RF24_PA_MIN);  //You can set it as minimum or maximum depending on the distance between the transmitter and receiver.
+radio.stopListening(); 
+h1.id=2; 
+  
+  Serial.begin(9600);
+}
+
+void loop() {
+   int ir_val=digitalRead(ir_pin);
+   if (digitalRead(ir_pin)== HIGH)
+   {
+    digitalWrite(5,HIGH);
+    Serial.println("helmet not wearing");
+    delay(10);
+   }
+   else
+   {
+    digitalWrite(5,LOW);
+    Serial.println("helmet wearing");
+    delay(10);
+   } 
+
+
+    h1.mq_value=analogRead(mq_pin);
+   pack[0]=analogRead(mq_pin);
+   Serial.print("Methane value: ");
+   Serial.println(h1.mq_value);
+   if(h1.mq_value >375)
+   {
+    digitalWrite(6,HIGH);
+    //radio.write(&h1.text1, sizeof(h1.text1)); //Sending the message to receiver
+   }
+   else{
+    digitalWrite(6,LOW);
+   }
+   //radio.write(&h1.mq_value, sizeof(h1.mq_value)); 
+
+
+   {
+  //Start of Program 
+ 
+    DHT.read11(dht_apin);
+    h1.t=DHT.temperature;
+    h1.h=DHT.humidity;
+    pack[1]=DHT.temperature;
+    pack[2]=DHT.humidity;
+    Serial.print("Current humidity = ");
+    Serial.print(DHT.humidity);
+    Serial.print("%  ");
+    Serial.print("temperature = ");
+    Serial.print(DHT.temperature); 
+    Serial.println("C  ");
+    
+    delay(5000);//Wait 5 seconds before accessing sensor again.
+ 
+  //Fastest should be once every two seconds.
+ 
+}
+  if(h1.t>25)
+  {
+   digitalWrite(7,HIGH);
+//  h1.text2[30] = "temperature is HIGH";
+   //radio.write(&h1.text2, sizeof(h1.text2));                  //Sending the message to receiver
+  }
+  else{
+    digitalWrite(7,LOW);
+  }
+  if(h1.h>65)
+  {
+   digitalWrite(8,HIGH);
+//   h1.text3[30] = "humidity is HIGH";
+                  //Sending the message to receiver
+  }
+  else{
+    digitalWrite(8,LOW);
+  }
+  radio.write(&pack, sizeof(pack));
+  delay(1000);
+  
+}
